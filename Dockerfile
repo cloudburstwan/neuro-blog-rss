@@ -13,6 +13,7 @@ FROM base as build
 
 COPY --from=installation /temp/dev/node_modules ./node_modules
 COPY src ./src
+COPY tsconfig.json .
 RUN npm install typescript -g
 RUN tsc
 
