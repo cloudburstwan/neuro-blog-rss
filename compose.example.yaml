@@ -5,7 +5,7 @@ services:
     network_mode: bridge
     volumes:
       - data:/etc/app/data
-    env:
+    environment:
       RSS_FEED: https://blog.neurosama.com/feed.xml
       WEBHOOK_ID:
       WEBHOOK_TOKEN:
