@@ -31,39 +31,49 @@ const userAgent = `Neuro-Blog-RSS-Parser/1.0 (Node.js ${process.version}, Docker
 const loop = (async () => {
     if (cached.lastKnownETag) {
         // We have a last known Etag, check to see if we receive a 304.
-        const status = await fetch(process.env.RSS_FEED as string, {
-            method: "HEAD",
-            headers: {
-                "If-None-Match": cached.lastKnownETag,
-                "User-Agent": userAgent
-            }
-        }).then(res => res.status);
+        try {
+            const status = await fetch(process.env.RSS_FEED as string, {
+                method: "HEAD",
+                headers: {
+                    "If-None-Match": cached.lastKnownETag,
+                    "User-Agent": userAgent
+                }
+            }).then(res => res.status);
 
-        if (status === 304) return; // No updates, don't need to continue.
+            if (status === 304) return; // No updates, don't need to continue.
+        } catch (err) {
+            console.warn(`Tried to fetch feed headers but encountered an error: ${err}`);
+            return;
+        }
     }
     console.log(`ETag change detected at ${new Date().toISOString()}. Running additional checks to confirm new entries.`)
-    const res = await fetch(process.env.RSS_FEED as string);
-    const feed = parser.parse(await res.text()).feed;
+    try {
+        const res = await fetch(process.env.RSS_FEED as string);
+        const feed = parser.parse(await res.text()).feed;
 
-    if (!feed) {
-        console.warn("Attempted to fetch new feed in response to ETag change but XML parse resulted in `feed` === undefined");
-        return;
-    }
+        if (!feed)
+            throw new Error('XML parse resulted in `feed` === undefined');
 
-    cached.lastKnownETag = (res.headers.get("etag") as string);
-    cached.lastFeedUpdate = feed.updated;
-    const newEntries: NeuroBlogEntry[] = feed.entry.filter((entry: NeuroBlogEntry) => !(cached.alreadyObservedEntries ?? []).some((ety: any) => ety.id === entry.id));
+        cached.lastKnownETag = (res.headers.get("etag") as string);
+        cached.lastFeedUpdate = feed.updated;
+        const newEntries: NeuroBlogEntry[] = feed.entry.filter((entry: NeuroBlogEntry) => !(cached.alreadyObservedEntries ?? []).some((ety: any) => ety.id === entry.id));
 
-    if (newEntries.length > 0) {
-        console.log(`Found ${newEntries.length} new entries! Publishing them to Discord...`);
-        for (let entry of newEntries) {
-            await client.send(`<:vedalWow:1343810742989623296> **${entry.author.name} posted a new blog post!**\n${entry.id}`);
+        if (newEntries.length > 0) {
+            console.log(`Found ${newEntries.length} new entries! Publishing them to Discord...`);
+            for (let entry of newEntries) {
+                await client.send(`<:vedalWow:1343810742989623296> **${entry.author.name} posted a new blog post!**\n${entry.id}`);
+            }
+            cached.alreadyObservedEntries = [...(cached.alreadyObservedEntries ?? []), ...newEntries.map((entry: NeuroBlogEntry) => ({
+                id: entry.id,
+                publishedAt: entry.published
+            }))];
         }
-        cached.alreadyObservedEntries = [...(cached.alreadyObservedEntries ?? []), ...newEntries.map((entry: NeuroBlogEntry) => ({ id: entry.id, publishedAt: entry.published }))];
-    }
 
-    // Save cache
-    writeFileSync(cachedPath, JSON.stringify(cached, null, 4));
+        // Save cache
+        writeFileSync(cachedPath, JSON.stringify(cached, null, 4));
+    } catch (err) {
+        console.warn(`Attempted to fetch new feed in response to ETag change but encountered an error: ${err}`);
+    }
 });
 
 loop();
