@@ -4,12 +4,14 @@ import { WebhookClient } from "discord.js";
 
 let cachedPath: string;
 if (!existsSync("/etc/app/data/cache.json")) {
-    // Data not found, try alternative location
-    if (!existsSync('/etc/app/data') && !existsSync("./data/cache.json")) {
-        // Not found anywhere, complain very loudly
-        throw new ReferenceError("Could not find a valid location to create cache.json. Please ensure that a directory ");
-    } else {
+    if (existsSync("./data/cache.json")) {
         cachedPath = "./data/cache.json";
+    } else {
+        if (!existsSync('/etc/app/data')) {
+            throw new ReferenceError("Could not find a valid location to create cache.json. Please ensure that a directory ");
+        }
+        cachedPath = "/etc/app/data/cache.json";
+        writeFileSync(cachedPath, JSON.stringify({} as Cache, null, 4));
     }
 } else {
     cachedPath = "/etc/app/data/cache.json";
