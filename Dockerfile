@@ -4,10 +4,10 @@ WORKDIR /etc/app
 FROM base as installation
 
 COPY package.json /temp/dev
-RUN cd /temp/dev & npm install --save-dev
+RUN cd /temp/dev && npm install --save-dev
 
 COPY package.json /temp/prod
-RUN cd /temp/prod & npm install
+RUN cd /temp/prod && npm install
 
 FROM base as build
 
