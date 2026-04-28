@@ -1,0 +1,14 @@
+service:
+  app:
+    build: .
+    container_name: neuro-blog-rss
+    network_mode: bridge
+    volumes:
+      - data:/etc/app/data
+    env:
+      RSS_FEED: https://blog.neurosama.com/feed.xml
+      WEBHOOK_ID:
+      WEBHOOK_TOKEN:
+
+volumes:
+  data:
