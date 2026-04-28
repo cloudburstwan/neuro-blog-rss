@@ -1,4 +1,4 @@
-service:
+services:
   app:
     build: .
     container_name: neuro-blog-rss
