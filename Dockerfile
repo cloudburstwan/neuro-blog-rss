@@ -20,5 +20,5 @@ RUN tsc
 FROM base as release
 
 COPY --from=installation /temp/prod/node_modules ./node_modules
-COPY --from=build dist .
+COPY --from=build /etc/app/dist .
 ENTRYPOINT ["node", "index.js"]
